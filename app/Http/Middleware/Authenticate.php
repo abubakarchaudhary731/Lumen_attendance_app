@@ -3,27 +3,18 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Contracts\Auth\Factory as Auth;
+use Illuminate\Support\Facades\Auth;
 
 class Authenticate
 {
     /**
-     * The authentication guard factory instance.
+     * Handle an incoming request.
      *
-     * @var \Illuminate\Contracts\Auth\Factory
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string|null  $guard
+     * @return mixed
      */
-    protected $auth;
-
-    /**
-     * Create a new middleware instance.
-     *
-     * @param  \Illuminate\Contracts\Auth\Factory  $auth
-     * @return void
-     */
-    public function __construct(Auth $auth)
-    {
-        $this->auth = $auth;
-    }
 
     /**
      * Handle an incoming request.
@@ -35,10 +26,20 @@ class Authenticate
      */
     public function handle($request, Closure $next, $guard = null)
     {
-        if ($this->auth->guard($guard)->guest()) {
-            return response('Unauthorized.', 401);
-        }
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized. Please log in.'
+                ], 401);
+            }
 
-        return $next($request);
+            return $next($request);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Token is invalid or expired.'
+            ], 401);
+        }
     }
 }

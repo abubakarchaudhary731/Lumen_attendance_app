@@ -1,23 +1,18 @@
-# Lumen Attendance App
+# Attendance Management System API
 
-[![Lumen Version](https://img.shields.io/badge/Lumen-10.0.4-ff69b4.svg)](https://lumen.laravel.com/)
-[![PHP Version](https://img.shields.io/badge/PHP-8.1+-777BB4.svg)](https://php.net/)
-[![Composer Version](https://img.shields.io/badge/Composer-2.5+-885630.svg)](https://getcomposer.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+A RESTful API built with Lumen for managing employee attendance with JWT authentication.
 
-A robust Attendance Management System built with Lumen 10.0.4 (Laravel Components ^10.0). This application provides features for employee attendance tracking, user management, and reporting.
+## Features
 
-## 🚀 Features
+- User authentication with JWT
+- Role-based access control (Admin, HR, Employee)
+- Attendance check-in/check-out
+- User management
+- CORS support
+- API versioning
+- Comprehensive test coverage
 
-- User authentication (JWT)
-- Role-based access control (Employee, HR, Admin)
-- Attendance tracking (Check-in/Check-out)
-- User profile management
-- Leave management
-- Reports generation
-- RESTful API endpoints
-
-## 🛠️ Requirements
+## Requirements
 
 - PHP >= 8.3
 - Composer >= 2.8.6

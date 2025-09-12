@@ -23,9 +23,9 @@ $app = new Laravel\Lumen\Application(
     dirname(__DIR__)
 );
 
-// $app->withFacades();
-
-// $app->withEloquent();
+// Enable facades and Eloquent
+$app->withFacades();
+$app->withEloquent();
 
 /*
 |--------------------------------------------------------------------------
@@ -72,13 +72,17 @@ $app->configure('app');
 |
 */
 
-// $app->middleware([
-//     App\Http\Middleware\ExampleMiddleware::class
-// ]);
+// Register route middleware
+$app->routeMiddleware([
+    'auth' => App\Http\Middleware\Authenticate::class,
+    'jwt.auth' => PHPOpenSourceSaver\JWTAuth\Http\Middleware\Authenticate::class,
+    'jwt.refresh' => PHPOpenSourceSaver\JWTAuth\Http\Middleware\RefreshToken::class,
+]);
 
-// $app->routeMiddleware([
-//     'auth' => App\Http\Middleware\Authenticate::class,
-// ]);
+// Register global middleware
+$app->middleware([
+    App\Http\Middleware\CorsMiddleware::class,
+]);
 
 /*
 |--------------------------------------------------------------------------
@@ -91,9 +95,16 @@ $app->configure('app');
 |
 */
 
-// $app->register(App\Providers\AppServiceProvider::class);
-// $app->register(App\Providers\AuthServiceProvider::class);
-// $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\AppServiceProvider::class);
+$app->register(App\Providers\AuthServiceProvider::class);
+$app->register(App\Providers\EventServiceProvider::class);
+
+// Register JWT Auth Service Provider
+$app->register(PHPOpenSourceSaver\JWTAuth\Providers\LumenServiceProvider::class);
+
+// Add JWT Facade
+class_alias(PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::class, 'JWTAuth');
+class_alias(PHPOpenSourceSaver\JWTAuth\Facades\JWTFactory::class, 'JWTFactory');
 
 /*
 |--------------------------------------------------------------------------

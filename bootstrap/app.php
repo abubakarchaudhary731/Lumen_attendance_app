@@ -97,14 +97,14 @@ $app->middleware([
 
 $app->register(App\Providers\AppServiceProvider::class);
 $app->register(App\Providers\AuthServiceProvider::class);
-$app->register(App\Providers\EventServiceProvider::class);
-
-// Register JWT Auth Service Provider
 $app->register(PHPOpenSourceSaver\JWTAuth\Providers\LumenServiceProvider::class);
+$app->register(App\Providers\EventServiceProvider::class);
 
 // Add JWT Facade
 class_alias(PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::class, 'JWTAuth');
 class_alias(PHPOpenSourceSaver\JWTAuth\Facades\JWTFactory::class, 'JWTFactory');
+
+$app->configure('auth');
 
 /*
 |--------------------------------------------------------------------------

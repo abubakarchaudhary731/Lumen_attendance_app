@@ -2,56 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use App\Response\ApiResponse;
+use App\Services\AuthService;
+use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Auth\LoginUserRequest;
+use App\Http\Requests\Auth\RegisterUserRequest;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
+    protected $authService;
+
     /**
      * Create a new AuthController instance.
      *
+     * @param AuthService $authService
      * @return void
      */
-    public function __construct()
+    public function __construct(AuthService $authService)
     {
+        $this->authService = $authService;
         $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
 
     /**
      * Register a new user.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param RegisterUserRequest $request
+     * @return JsonResponse
      */
-    public function register(Request $request)
+    public function register(RegisterUserRequest $request): JsonResponse
     {
-        $this->validate($request, [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'status' => 'ACTIVE',
-        ]);
-
-        $token = Auth::login($user);
-
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-            'authorization' => [
-                'token' => $token,
-                'type' => 'bearer',
-            ]
-        ], 201);
+        try {
+            $validatedData = $request->validated();
+            $response = $this->authService->register($validatedData);
+            return ApiResponse::successResponse($response['message'], $response['user']);
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500,
+                $e
+            );
+        }
     }
 
     /**
@@ -59,15 +52,19 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login()
+    public function login(LoginUserRequest $request)
     {
-        $credentials = request(['email', 'password']);
-
-        if (! $token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        try {
+            $validatedData = $request->validated();
+            $response = $this->authService->login($validatedData);
+            return ApiResponse::successResponse("User Logged In Successfully", $response);
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500,
+                $e
+            );
         }
-
-        return $this->respondWithToken($token);
     }
 
     /**

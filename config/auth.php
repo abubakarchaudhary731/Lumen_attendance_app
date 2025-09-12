@@ -40,6 +40,11 @@ return [
             'provider' => 'users',
         ],
     ],
+    
+    'defaults' => [
+        'guard' => 'api',
+        'passwords' => 'users',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -59,7 +64,10 @@ return [
     */
 
     'providers' => [
-        //
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
     ],
 
     /*

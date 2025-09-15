@@ -9,6 +9,8 @@ use App\Http\Requests\Auth\LoginUserRequest;
 use App\Http\Requests\Auth\RegisterUserRequest;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException;
 
 class AuthController extends Controller
 {
@@ -23,7 +25,6 @@ class AuthController extends Controller
     public function __construct(AuthService $authService)
     {
         $this->authService = $authService;
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
 
     /**
@@ -68,28 +69,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Get the authenticated User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function me()
-    {
-        return response()->json(auth()->user());
-    }
-
-    /**
-     * Log the user out (Invalidate the token).
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function logout()
-    {
-        auth()->logout();
-
-        return response()->json(['message' => 'Successfully logged out']);
-    }
-
-    /**
      * Refresh a token.
      *
      * @return \Illuminate\Http\JsonResponse
@@ -97,25 +76,56 @@ class AuthController extends Controller
     public function refresh()
     {
         try {
-            return $this->respondWithToken(JWTAuth::parseToken()->refresh());
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Could not refresh token'], 500);
-        }
-    }
+            // Get the token from the request
+            $token = JWTAuth::getToken();
 
-    /**
-     * Get the token array structure.
-     *
-     * @param  string $token
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    protected function respondWithToken($token)
-    {
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60
-        ]);
+            if (!$token) {
+                return ApiResponse::errorResponse(
+                    'Token not provided',
+                    401
+                );
+            }
+
+            // Check if token is valid
+            try {
+                JWTAuth::checkOrFail();
+            } catch (TokenExpiredException $e) {
+                // Token is expired, we'll still allow refresh
+            } catch (JWTException $e) {
+                return ApiResponse::errorResponse(
+                    'Invalid token: ' . $e->getMessage(),
+                    401
+                );
+            }
+
+            // Generate new token
+            $newToken = JWTAuth::refresh($token);
+
+            // Invalidate old token
+            JWTAuth::invalidate($token);
+
+            $response = $this->authService->respondWithToken($newToken);
+            return ApiResponse::successResponse("Token Refreshed Successfully", $response);
+        } catch (TokenExpiredException $e) {
+            return ApiResponse::errorResponse(
+                'Token has expired and can no longer be refreshed',
+                401
+            );
+        } catch (TokenInvalidException $e) {
+            return ApiResponse::errorResponse(
+                'Token is invalid',
+                401
+            );
+        } catch (JWTException $e) {
+            return ApiResponse::errorResponse(
+                'Could not refresh token: ' . $e->getMessage(),
+                401
+            );
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                'An error occurred during token refresh: ' . $e->getMessage(),
+                500
+            );
+        }
     }
 }

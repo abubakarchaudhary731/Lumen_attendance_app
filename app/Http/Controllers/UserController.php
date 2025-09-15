@@ -3,24 +3,71 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\Request;
 use App\Enums\UserRole;
-use App\Enums\UserStatus;
+use Illuminate\Http\Request;
+use App\Response\ApiResponse;
+use App\Services\UserService;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+
+    protected $userService;
+    protected $permissionService;
+
+    public function __construct(UserService $userService, PermissionService $permissionService)
     {
-        return response()->json([
-            'status' => 'success',
-            'users' => User::all()
-        ]);
+        $this->userService = $userService;
+        $this->permissionService = $permissionService;
+    }
+
+    /**
+     * Display a listing of the resource with pagination and search.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(Request $request)
+    {
+        try {
+            if (!$this->permissionService->haveAdminOrHRPermission()) {
+                return ApiResponse::errorResponse(
+                    __('messages.permissions.permission_denied'),
+                    403
+                );
+            }
+
+            // Get pagination and search parameters
+            $perPage = $request->input('per_page', 15);
+            $page = $request->input('page', 1);
+            $search = $request->input('search');
+
+            // Get users with pagination and search
+            $result = $this->userService->getAllUsers([
+                'per_page' => $perPage,
+                'page' => $page,
+                'search' => $search
+            ]);
+
+            if (!$result['success']) {
+                return ApiResponse::errorResponse(
+                    $result['message'],
+                    $result['code'] ?? 500
+                );
+            }
+
+            return ApiResponse::successResponse(
+                'Users fetched successfully',
+                $result['data']
+            );
+        } catch (\Throwable $th) {
+            return ApiResponse::errorResponse(
+                $th->getMessage(),
+                $th->getCode() ?: 500,
+                $th
+            );
+        }
     }
 
     /**
@@ -74,7 +121,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id,

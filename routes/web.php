@@ -30,10 +30,6 @@ $router->group(['prefix' => 'api/v1'], function () use ($router) {
 
 // Protected routes
 $router->group(['prefix' => 'api/v1', 'middleware' => 'auth:api'], function () use ($router) {
-    // Auth routes that need authentication
-    $router->post('logout', 'AuthController@logout');
-    $router->get('me', 'AuthController@me');
-
     // User Routes
     $router->group(['prefix' => 'users'], function () use ($router) {
         $router->get('/', 'UserController@index');

@@ -57,7 +57,7 @@ class AuthService
         ];
     }
 
-    protected function respondWithToken($token): array
+    public function respondWithToken($token): array
     {
         return [
             'access_token' => $token,

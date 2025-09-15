@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Response\ApiResponse;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,18 +29,18 @@ class Authenticate
     {
         try {
             if (!Auth::check()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Unauthorized. Please log in.'
-                ], 401);
+                return ApiResponse::errorResponse(
+                    'Unauthorized. Please log in.',
+                    401
+                );
             }
 
             return $next($request);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Token is invalid or expired.'
-            ], 401);
+            return ApiResponse::errorResponse(
+                'Token is invalid or expired.',
+                401
+            );
         }
     }
 }

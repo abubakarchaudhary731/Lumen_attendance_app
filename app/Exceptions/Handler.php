@@ -8,6 +8,10 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use App\Response\ApiResponse;
 
 class Handler extends ExceptionHandler
 {
@@ -49,6 +53,46 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
-        return parent::render($request, $exception);
+        if ($exception instanceof TokenExpiredException) {
+            return ApiResponse::errorResponse(
+                message: 'Token has expired',
+                statusCode: 401,
+                exception: $exception
+            );
+        }
+
+        if ($exception instanceof TokenInvalidException) {
+            return ApiResponse::errorResponse(
+                message: 'Token is invalid',
+                statusCode: 401,
+                exception: $exception
+            );
+        }
+
+        if ($exception instanceof JWTException) {
+            return ApiResponse::errorResponse(
+                message: 'Could not process token',
+                statusCode: 500,
+                exception: $exception
+            );
+        }
+
+        // For other types of exceptions, use the default handler
+        $response = parent::render($request, $exception);
+
+        // If it's an API request, return JSON response using ApiResponse
+        if ($request->wantsJson() || $request->is('api/*')) {
+            $statusCode = method_exists($response, 'getStatusCode')
+                ? $response->getStatusCode()
+                : 500;
+
+            return ApiResponse::errorResponse(
+                message: $exception->getMessage() ?: 'An error occurred',
+                statusCode: $statusCode,
+                exception: $exception
+            );
+        }
+
+        return $response;
     }
 }

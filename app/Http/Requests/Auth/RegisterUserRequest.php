@@ -12,8 +12,7 @@ class RegisterUserRequest extends BaseRequest
         return [
             'name' => 'required|string|max:50',
             'email' => 'required|string|email|max:50|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-            'password_confirmation' => 'required|string|min:6',
+            'password' => 'required|string|min:6',
             'role' => 'required|in:' . implode(',', UserRole::values()),
             'phone_number' => 'string|max:20|unique:users',
         ];
@@ -31,9 +30,6 @@ class RegisterUserRequest extends BaseRequest
             'phone_number.unique' => 'This phone number is already registered.',
             'password.required' => 'The password field is required.',
             'password.min' => 'The password must be at least 6 characters.',
-            'password.confirmed' => 'The password confirmation does not match.',
-            'password_confirmation.required' => 'The password confirmation field is required.',
-            'password_confirmation.min' => 'The password confirmation must be at least 6 characters.',
         ];
     }
 }

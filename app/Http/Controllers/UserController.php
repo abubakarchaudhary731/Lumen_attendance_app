@@ -3,22 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Enums\UserRole;
 use Illuminate\Http\Request;
 use App\Response\ApiResponse;
+use App\Services\AuthService;
 use App\Services\UserService;
 use App\Services\PermissionService;
-use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\Auth\RegisterUserRequest;
+use App\Http\Requests\UsersRequest\UpdateUserRequest;
 
 class UserController extends Controller
 {
 
     protected $userService;
+    protected $authService;
     protected $permissionService;
 
-    public function __construct(UserService $userService, PermissionService $permissionService)
-    {
+    public function __construct(
+        UserService $userService,
+        AuthService $authService,
+        PermissionService $permissionService,
+    ) {
         $this->userService = $userService;
+        $this->authService = $authService;
         $this->permissionService = $permissionService;
     }
 
@@ -76,25 +82,25 @@ class UserController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(RegisterUserRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-            'phone_number' => 'nullable|string|max:20',
-            'role' => 'sometimes|in:' . implode(',', UserRole::values()),
-            'status' => 'sometimes|in:' . implode(',', \App\Enums\UserStatus::values()),
-        ]);
-
-        $validated['password'] = Hash::make($validated['password']);
-        $user = User::create($validated);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User created successfully',
-            'user' => $user
-        ], 201);
+        try {
+            if (!$this->permissionService->haveAdminOrHRPermission()) {
+                return ApiResponse::errorResponse(
+                    __('messages.permissions.permission_denied'),
+                    403
+                );
+            }
+            $validatedData = $request->validated();
+            $response = $this->authService->register($validatedData);
+            return ApiResponse::successResponse($response['message'], $response['user']);
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500,
+                $e
+            );
+        }
     }
 
     /**
@@ -105,43 +111,91 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        return response()->json([
-            'status' => 'success',
-            'user' => User::findOrFail($id)
-        ]);
+        try {
+            $currentUser = auth()->user();
+
+            // Check if current user is admin or HR, or if they're trying to access their own profile
+            if (!$this->permissionService->haveAdminOrHRPermission() && $currentUser->id != $id) {
+                return ApiResponse::errorResponse(
+                    __('messages.permissions.permission_denied'),
+                    403
+                );
+            }
+
+            $requestedUser = $this->userService->getUserById($id);
+            return ApiResponse::successResponse(
+                'User fetched successfully',
+                $requestedUser ? (array) $requestedUser : null
+            );
+        } catch (\Throwable $th) {
+            return ApiResponse::errorResponse(
+                $th->getMessage(),
+                $th->getCode() ?: 500,
+                $th
+            );
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified user in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\User\UpdateUserRequest  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, $id)
     {
-        $user = User::findOrFail($id);
+        try {
+            $targetUserId = (int)$id;
+            $currentUser = auth()->user();
 
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id,
-            'password' => 'sometimes|string|min:6|confirmed',
-            'phone_number' => 'nullable|string|max:20',
-            'role' => 'sometimes|in:' . implode(',', UserRole::values()),
-            'status' => 'sometimes|in:' . implode(',', \App\Enums\UserStatus::values()),
-        ]);
+            if (!$currentUser) {
+                return ApiResponse::errorResponse(
+                    'Unauthenticated. Please log in to update user.',
+                    401
+                );
+            }
+            if (!$this->permissionService->haveAdminOrHRPermission() && $currentUser->id !== $targetUserId) {
+                return ApiResponse::errorResponse(
+                    __('messages.permissions.permission_denied'),
+                    403
+                );
+            }
 
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
+            $request->merge(['id' => $targetUserId]);
+            $validatedRequest = $request->validated();
+
+            $response = $this->userService->updateUser(
+                $validatedRequest,
+                $targetUserId,
+                $currentUser
+            );
+
+            if (!$response['success']) {
+                return ApiResponse::errorResponse(
+                    $response['message'],
+                    $response['code'] ?? 500,
+                    $response['errors'] ?? null
+                );
+            }
+
+            $responseData = $response['data'] ? (
+                method_exists($response['data'], 'toArray')
+                ? $response['data']->toArray()
+                : (array)$response['data']
+            ) : null;
+
+            return ApiResponse::successResponse(
+                $response['message'] ?? 'User updated successfully',
+                $responseData
+            );
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500,
+                $e
+            );
         }
-
-        $user->update($validated);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User updated successfully',
-            'user' => $user
-        ]);
     }
 
     /**
@@ -152,12 +206,26 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        $user = User::findOrFail($id);
-        $user->delete();
+        try {
+            if ($this->permissionService->haveOnlyAdminPermission()) {
+                $user = User::findOrFail($id);
+                $user->delete();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User deleted successfully'
-        ]);
+                return ApiResponse::successResponse(
+                    'User deleted successfully',
+                    null
+                );
+            }
+            return ApiResponse::errorResponse(
+                __('messages.permissions.permission_denied'),
+                403
+            );
+        } catch (\Throwable $th) {
+            return ApiResponse::errorResponse(
+                $th->getMessage(),
+                $th->getCode() ?: 500,
+                $th
+            );
+        }
     }
 }

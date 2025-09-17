@@ -29,7 +29,7 @@ $router->group(['prefix' => 'api/v1'], function () use ($router) {
 });
 
 // Protected routes
-$router->group(['prefix' => 'api/v1', 'middleware' => 'auth:api'], function () use ($router) {
+$router->group(['prefix' => 'api/v1', 'middleware' => 'jwt.auth'], function () use ($router) {
     // User Routes
     $router->group(['prefix' => 'users'], function () use ($router) {
         $router->get('/', 'UserController@index');

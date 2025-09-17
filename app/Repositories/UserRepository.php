@@ -48,6 +48,11 @@ class UserRepository
         return User::where('email', $email)->first();
     }
 
+    public function getUserById($id): ?User
+    {
+        return User::find($id);
+    }
+
     /**
      * Get all users with pagination and search
      *
@@ -80,5 +85,17 @@ class UserRepository
         );
 
         return UserCollectionDTO::fromPaginator($paginator);
+    }
+
+    /**
+     * Update user data
+     *
+     * @param User $user
+     * @param array $data
+     * @return bool
+     */
+    public function updateUser(User $user, array $data): bool
+    {
+        return $user->update($data);
     }
 }

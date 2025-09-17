@@ -84,38 +84,46 @@ class UserService
 
             $updatableFields = ['name', 'email', 'phone_number'];
             $updateData = array_intersect_key($data, array_flip($updatableFields));
-            $isPrivilegedUser = in_array($currentUser->role, [UserRole::ADMIN->value, UserRole::HR->value]);
+            $isAdmin = $currentUser->role === UserRole::ADMIN->value;
+            $isHR    = $currentUser->role === UserRole::HR->value;
 
-            if ($isPrivilegedUser) {
-                if (isset($data['role'])) {
-                    $updateData['role'] = $data['role'];
-                }
-                if (isset($data['status'])) {
-                    $updateData['status'] = $data['status'];
-                }
+            if ($isAdmin || $isHR) {
+                $updateData['role']   = $data['role']   ?? $updateData['role'] ?? null;
+                $updateData['status'] = $data['status'] ?? $updateData['status'] ?? null;
             }
-            if (isset($data['password'])) {
-                if (Hash::check($data['password'], $user->password)) {
-                    return [
-                        'success' => false,
-                        'message' => 'New password cannot be the same as old password',
-                        'code' => 400
-                    ];
-                }
-                if ($isPrivilegedUser) {
+
+            if (!empty($data['password'])) {
+                if ($isAdmin) {
+                    $updateData['password'] = Hash::make($data['password']);
+                } elseif ($isHR) {
+                    if (in_array($user->role, [UserRole::ADMIN->value, UserRole::HR->value])) {
+                        return [
+                            'success' => false,
+                            'message' => 'HR cannot update Admin or HR passwords',
+                            'code'    => 403
+                        ];
+                    }
                     $updateData['password'] = Hash::make($data['password']);
                 } else {
-                    if (Hash::check($data['old_password'], $user->password)) {
+                    if (!empty($data['old_password']) && Hash::check($data['old_password'], $user->password)) {
+                        if (Hash::check($data['password'], $user->password)) {
+                            return [
+                                'success' => false,
+                                'message' => 'New password cannot be the same as old password',
+                                'code'    => 400
+                            ];
+                        }
                         $updateData['password'] = Hash::make($data['password']);
                     } else {
                         return [
                             'success' => false,
                             'message' => 'Old password is incorrect',
-                            'code' => 400
+                            'code'    => 400
                         ];
                     }
                 }
             }
+
             $updated = $this->userRepository->updateUser($user, $updateData);
 
             if ($updated) {

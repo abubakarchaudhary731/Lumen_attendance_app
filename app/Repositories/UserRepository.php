@@ -64,8 +64,13 @@ class UserRepository
         $perPage = $params['per_page'] ?? 15;
         $page = $params['page'] ?? 1;
         $search = $params['search'] ?? null;
+        $excludeCurrentUser = $params['exclude_current'] ?? true;
 
         $query = User::query();
+
+        if ($excludeCurrentUser && auth()->check()) {
+            $query->where('id', '!=', auth()->id());
+        }
 
         // Apply search filter if provided
         if ($search) {

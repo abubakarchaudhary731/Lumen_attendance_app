@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
+use App\Enums\Users\UserRole;
+use App\Enums\Users\UserStatus;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
+use App\Enums\Users\UserRole;
+use App\Enums\Users\UserStatus;
 use Illuminate\Auth\Authenticatable;
 use Laravel\Lumen\Auth\Authorizable;
 use Illuminate\Database\Eloquent\Model;

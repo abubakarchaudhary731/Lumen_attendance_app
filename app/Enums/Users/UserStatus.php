@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Enums;
+namespace App\Enums\Users;
 
-enum UserRole: string
+enum UserStatus: string
 {
-    case EMPLOYEE = 'EMPLOYEE';
-    case HR = 'HR';
-    case ADMIN = 'ADMIN';
+    case ACTIVE = 'ACTIVE';
+    case INACTIVE = 'INACTIVE';
 
     public static function values(): array
     {

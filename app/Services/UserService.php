@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Enums\UserRole;
+use App\Enums\Users\UserRole;
 use App\DTO\User\UserDTO;
 use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Hash;

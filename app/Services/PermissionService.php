@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\UserRole;
+use App\Enums\Users\UserRole;
 
 class PermissionService
 {

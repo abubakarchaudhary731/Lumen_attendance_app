@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
-use App\Enums\UserStatus;
+use App\Enums\Users\UserStatus;
 use App\DTO\User\UserDTO;
 use App\DTO\User\UserCollectionDTO;
 use Illuminate\Support\Facades\Hash;

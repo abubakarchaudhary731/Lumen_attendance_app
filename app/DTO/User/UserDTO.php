@@ -4,8 +4,8 @@ namespace App\DTO\User;
 
 use App\Models\User;
 use App\DTO\BaseDTO;
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
+use App\Enums\Users\UserRole;
+use App\Enums\Users\UserStatus;
 
 class UserDTO extends BaseDTO
 {

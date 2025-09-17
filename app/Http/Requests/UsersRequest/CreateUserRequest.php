@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\UsersRequest;
 
-use App\Enums\UserRole;
+use App\Enums\Users\UserRole;
 use App\Http\Requests\BaseRequest;
 
 class CreateUserRequest extends BaseRequest

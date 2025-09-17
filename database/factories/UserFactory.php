@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\User;
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
+use App\Enums\Users\UserRole;
+use App\Enums\Users\UserStatus;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Factories\Factory;

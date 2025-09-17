@@ -1,10 +1,5 @@
 <?php
 
-/** @var \Laravel\Lumen\Routing\Router $router */
-
-use App\Http\Controllers\Controller;
-use FastRoute\Route;
-
 /*
 |--------------------------------------------------------------------------
 | Application Routes
@@ -24,7 +19,7 @@ $router->get('/', function () use ($router) {
 $router->group(['prefix' => 'api/v1'], function () use ($router) {
     // Authentication Routes
     $router->post('login', 'AuthController@login');
-    $router->post('register', 'AuthController@register');
+    // $router->post('register', 'AuthController@register');
     $router->post('refresh', 'AuthController@refresh');
 });
 

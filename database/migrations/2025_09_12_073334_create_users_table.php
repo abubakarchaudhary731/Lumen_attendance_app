@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
+use App\Enums\Users\UserRole;
+use App\Enums\Users\UserStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

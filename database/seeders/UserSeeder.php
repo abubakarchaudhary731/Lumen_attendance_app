@@ -21,8 +21,8 @@ class UserSeeder extends Seeder
         // Create admin user
         User::create([
             'name' => 'Admin',
-            'email' => 'admin@admin.com',
-            'password' => Hash::make('password'),
+            'email' => config('app.admin_email', 'admin@admin.com'),
+            'password' => Hash::make(config('app.admin_password', 'password')),
             'role' => UserRole::ADMIN->value,
             'status' => UserStatus::ACTIVE->value,
             'email_verified_at' => Carbon::now(),
@@ -31,8 +31,8 @@ class UserSeeder extends Seeder
         // Create HR user
         User::create([
             'name' => 'HR',
-            'email' => 'hr@admin.com',
-            'password' => Hash::make('password'),
+            'email' => config('app.hr_email', 'hr@admin.com'),
+            'password' => Hash::make(config('app.hr_password', 'password')),
             'role' => UserRole::HR->value,
             'status' => UserStatus::ACTIVE->value,
             'email_verified_at' => Carbon::now(),

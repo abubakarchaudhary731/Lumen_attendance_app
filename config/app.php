@@ -57,6 +57,8 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
     'admin_email' => env('ADMIN_EMAIL'),
     'admin_password' => env('ADMIN_PASSWORD'),
+    'hr_email' => env('HR_EMAIL'),
+    'hr_password' => env('HR_PASSWORD'),
 
     /*
     |--------------------------------------------------------------------------

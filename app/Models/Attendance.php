@@ -2,11 +2,20 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'attendance';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -18,7 +27,12 @@ class Attendance extends Model
         'check_out',
         'total_hours',
         'status',
-        'notes'
+        'notes',
+        'is_missed_checkout',
+        'is_work_from_home',
+        'is_late',
+        'created_at',
+        'updated_at',
     ];
 
     /**
@@ -31,6 +45,13 @@ class Attendance extends Model
         'check_out' => 'datetime',
         'total_hours' => 'decimal:2',
     ];
+
+    protected function serializeDate(DateTimeInterface $date): string
+    {
+        return Carbon::instance($date)->setTimezone(
+            new \DateTimeZone(config('app.timezone', 'UTC'))
+        )->format('Y-m-d H:i:s');
+    }
 
     /**
      * Get the user that owns the attendance record.

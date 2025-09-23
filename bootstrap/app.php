@@ -60,6 +60,9 @@ $app->singleton(
 */
 
 $app->configure('app');
+$app->configure('jwt');
+$app->configure('auth');
+$app->configure('attendance');
 
 /*
 |--------------------------------------------------------------------------

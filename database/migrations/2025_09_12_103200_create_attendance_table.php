@@ -18,7 +18,9 @@ return new class extends Migration
             $table->dateTime('check_in');
             $table->text('notes')->nullable();
             $table->dateTime('check_out')->nullable();
+            $table->boolean('is_late')->default(false);
             $table->decimal('total_hours', 8, 2)->nullable();
+            $table->boolean('is_work_from_home')->default(false);
             $table->boolean('is_missed_checkout')->default(false);
             $table->enum('status', AttendanceStatus::values())->default(AttendanceStatus::CHECKED_IN->value);
             $table->timestamps();

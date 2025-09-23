@@ -3,45 +3,63 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
-use Illuminate\Http\Request;
+use App\Response\ApiResponse;
+use App\Services\AttendanceService;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
+use App\Http\Requests\Attendance\CheckinRequest;
+use App\Http\Requests\Attendance\CheckoutRequest;
 
 class AttendanceController extends Controller
 {
+    protected $attendanceService;
+    protected $permissionService;
+
+    public function __construct(
+        AttendanceService $attendanceService,
+        PermissionService $permissionService,
+    ) {
+        $this->attendanceService = $attendanceService;
+        $this->permissionService = $permissionService;
+    }
     /**
      * Check in a user.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function checkIn(Request $request)
+    public function checkIn(CheckinRequest $request)
     {
-        $user = Auth::user();
+        try {
+            $validatedData = $request->validated();
+            if ($this->permissionService->haveOnlyAdminPermission()) {
+                return ApiResponse::errorResponse(
+                    'Unauthorized',
+                    403,
+                    null
+                );
+            }
+            $response = $this->attendanceService->checkIn(Auth::user(), $validatedData);
 
-        // Check if user has already checked in today
-        $existingCheckIn = Attendance::where('user_id', $user->id)
-            ->whereDate('check_in', Carbon::today())
-            ->first();
+            if (!$response['success']) {
+                return ApiResponse::errorResponse(
+                    $response['message'],
+                    $response['code'] ?? 500,
+                    null
+                );
+            }
 
-        if ($existingCheckIn) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'You have already checked in today'
-            ], 400);
+            return ApiResponse::successResponse(
+                $response['message'],
+                $response['data']
+            );
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                $e->getMessage(),
+                500,
+                $e
+            );
         }
-
-        $attendance = Attendance::create([
-            'user_id' => $user->id,
-            'check_in' => Carbon::now(),
-            'status' => 'PRESENT'
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Checked in successfully',
-            'attendance' => $attendance
-        ], 201);
     }
 
     /**
@@ -50,33 +68,39 @@ class AttendanceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function checkOut(Request $request)
+    public function checkOut(CheckoutRequest $request)
     {
-        $user = Auth::user();
+        try {
+            $validatedData = $request->validated();
+            if ($this->permissionService->haveOnlyAdminPermission()) {
+                return ApiResponse::errorResponse(
+                    'Unauthorized',
+                    403,
+                    null
+                );
+            }
 
-        $attendance = Attendance::where('user_id', $user->id)
-            ->whereDate('check_in', Carbon::today())
-            ->whereNull('check_out')
-            ->first();
+            $response = $this->attendanceService->checkOut(Auth::user(), $validatedData);
 
-        if (!$attendance) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No active check-in found for today'
-            ], 400);
+            if (!$response['success']) {
+                return ApiResponse::errorResponse(
+                    $response['message'],
+                    $response['code'] ?? 500,
+                    null
+                );
+            }
+
+            return ApiResponse::successResponse(
+                $response['message'],
+                $response['data']
+            );
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                $e->getMessage(),
+                500,
+                $e
+            );
         }
-
-        $checkOutTime = Carbon::now();
-        $attendance->update([
-            'check_out' => $checkOutTime,
-            'total_hours' => $checkOutTime->diffInHours($attendance->check_in, true)
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Checked out successfully',
-            'attendance' => $attendance
-        ]);
     }
 
     /**

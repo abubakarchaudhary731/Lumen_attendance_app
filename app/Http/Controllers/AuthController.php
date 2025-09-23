@@ -42,7 +42,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return ApiResponse::errorResponse(
                 $e->getMessage(),
-                $e->getCode() ?: 500,
+                500,
                 $e
             );
         }
@@ -62,7 +62,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return ApiResponse::errorResponse(
                 $e->getMessage(),
-                $e->getCode() ?: 500,
+                500,
                 $e
             );
         }

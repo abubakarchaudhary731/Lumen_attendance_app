@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use Illuminate\Http\Request;
 use App\Response\ApiResponse;
 use App\Services\AttendanceService;
 use App\Services\PermissionService;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Attendance\CheckinRequest;
 use App\Http\Requests\Attendance\CheckoutRequest;
+use App\DTO\Attendance\PaginatedAttendanceResponseDTO;
 
 class AttendanceController extends Controller
 {
@@ -106,24 +108,42 @@ class AttendanceController extends Controller
     /**
      * Display a listing of the attendance records.
      *
-     * @return \Illuminate\Http\Response
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
-        $user = Auth::user();
-        $query = Attendance::with('user');
+        try {
+            $user = Auth::user();
+            $params = $request->all();
 
-        // If user is not admin, only show their own attendance
-        if ($user->role !== 'ADMIN') {
-            $query->where('user_id', $user->id);
+            if (!isset($params['per_page'])) {
+                $params['per_page'] = 15;
+            }
+
+            $result = $this->attendanceService->listAttendances($user, $params);
+
+            if (!$result['success']) {
+                return ApiResponse::errorResponse(
+                    $result['message'],
+                    500,
+                    null
+                );
+            }
+
+            $responseDTO = PaginatedAttendanceResponseDTO::fromPaginator($result['data']);
+
+            return ApiResponse::successResponse(
+                'Attendance records retrieved successfully',
+                $responseDTO->toArray()
+            );
+        } catch (\Exception $e) {
+            return ApiResponse::errorResponse(
+                'Failed to retrieve attendance records: ' . $e->getMessage(),
+                500,
+                null
+            );
         }
-
-        $attendance = $query->orderBy('check_in', 'desc')->get();
-
-        return response()->json([
-            'status' => 'success',
-            'attendance' => $attendance
-        ]);
     }
 
     /**

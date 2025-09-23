@@ -35,6 +35,41 @@ class AttendanceRepository
             ->first();
     }
 
+    public function listAttendances($params = [])
+    {
+        $query = Attendance::with(['user' => function ($query) use ($params) {
+            $selectFields = ['id', 'name', 'email', 'role', 'status'];
+            $query->select($selectFields);
+
+            if (isset($params['show_all_attendances']) && $params['show_all_attendances'] === true) {
+                $query->where('status', 'active');
+            }
+        }]);
+
+        if (isset($params['user_id'])) {
+            $query->where('user_id', $params['user_id']);
+        }
+
+        if (isset($params['start_date'])) {
+            $query->whereDate('check_in', '>=', $params['start_date']);
+        }
+
+        if (isset($params['end_date'])) {
+            $query->whereDate('check_in', '<=', $params['end_date']);
+        }
+
+        if (!isset($params['start_date']) && !isset($params['end_date'])) {
+            $now = Carbon::now();
+            $query->whereMonth('check_in', $now->month)
+                ->whereYear('check_in', $now->year);
+        }
+
+        $query->orderBy('check_in', 'desc');
+
+        $perPage = $params['per_page'] ?? 15;
+        return $query->paginate($perPage);
+    }
+
     public function checkOut($user, $checkOutTime, $validatedData)
     {
         $attendance = $this->getTodayCheckIn($user->id);

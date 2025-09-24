@@ -5,6 +5,7 @@ namespace App\Services;
 use Carbon\Carbon;
 use App\Enums\Users\UserRole;
 use App\Repositories\AttendanceRepository;
+use App\Enums\Attendance\AttendanceStatus;
 
 class AttendanceService
 {
@@ -20,22 +21,71 @@ class AttendanceService
         $existingCheckIn = $this->attendanceRepository->existingCheckInRecord($user);
 
         if ($existingCheckIn) {
-            return [
-                'success' => false,
-                'message' => 'You have already checked in today',
-                'code' => 400
-            ];
+            throw new \Exception('You have already checked in today', 400);
         }
 
         $checkedIn = $this->attendanceRepository->createCheckInRecord($user, $validatedData);
         if ($checkedIn) {
             return [
-                'success' => true,
                 'message' => 'Checked in successfully',
                 'data' => $checkedIn->toArray(),
             ];
         }
     }
+
+    /**
+     * Update attendance record with validation and business logic
+     *
+     * @param int $id
+     * @param array $data
+     * @return array
+     * @throws \Exception
+     */
+    public function updateAttendance($id, array $data)
+    {
+        $attendance = $this->attendanceRepository->getAttendanceById($id);
+
+        if ($attendance->status === AttendanceStatus::CHECKED_IN->value) {
+            throw new \Exception('You can only update records after checkout', 400);
+        }
+
+        $allowedFields = ['check_in', 'check_out', 'is_work_from_home', 'status', 'notes'];
+        $updateData = array_intersect_key($data, array_flip($allowedFields));
+
+        // Helper to merge date (from existing) with time (from request)
+        $mergeDateTime = function ($existingDateTime, $newTime = null) {
+            if (!$newTime) {
+                return Carbon::parse($existingDateTime); // keep old value
+            }
+            $date = Carbon::parse($existingDateTime)->format('Y-m-d');
+            return Carbon::parse("$date $newTime");
+        };
+
+        // If check_in or check_out is being updated
+        if (isset($updateData['check_in']) || isset($updateData['check_out'])) {
+            $checkIn = $mergeDateTime($attendance->check_in, $updateData['check_in'] ?? null);
+            $checkOut = $attendance->check_out
+                ? $mergeDateTime($attendance->check_out, $updateData['check_out'] ?? null)
+                : $mergeDateTime($attendance->check_in, $updateData['check_out'] ?? null);
+
+            $updateData['check_in'] = $checkIn;
+
+            if ($checkOut) {
+                $updateData['check_out'] = $checkOut;
+                $updateData['total_hours'] = round($checkIn->diffInMinutes($checkOut) / 60, 2);
+            }
+
+            $updateData['is_late'] = $this->attendanceRepository->calculateIsLate($checkIn);
+        }
+
+        $updatedAttendance = $this->attendanceRepository->updateAttendanceRecord($id, $updateData);
+
+        return [
+            'message' => 'Attendance record updated successfully',
+            'data' => $updatedAttendance->toArray()
+        ];
+    }
+
 
     /**
      * List attendances with optional filters
@@ -63,7 +113,6 @@ class AttendanceService
         $attendances = $this->attendanceRepository->listAttendances($params);
 
         return [
-            'success' => true,
             'data' => $attendances,
         ];
     }
@@ -74,15 +123,10 @@ class AttendanceService
         $attendance = $this->attendanceRepository->checkOut($user, $checkOutTime, $validatedData);
 
         if (!$attendance) {
-            return [
-                'success' => false,
-                'message' => 'No active check-in found for today',
-                'code' => 400
-            ];
+            throw new \Exception('No active check-in found for today', 400);
         }
 
         return [
-            'success' => true,
             'message' => 'Checked out successfully',
             'data' => $attendance->toArray()
         ];

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Response\ApiResponse;
 use App\Services\AttendanceService;
@@ -11,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Attendance\CheckinRequest;
 use App\Http\Requests\Attendance\CheckoutRequest;
 use App\DTO\Attendance\PaginatedAttendanceResponseDTO;
+use App\Http\Requests\Attendance\UpdateAttendanceRequest;
 
 class AttendanceController extends Controller
 {
@@ -35,31 +35,19 @@ class AttendanceController extends Controller
         try {
             $validatedData = $request->validated();
             if ($this->permissionService->haveOnlyAdminPermission()) {
-                return ApiResponse::errorResponse(
-                    'Unauthorized',
-                    403,
-                    null
-                );
+                throw new \Exception(__('messages.permissions.permission_denied'), 403);
             }
             $response = $this->attendanceService->checkIn(Auth::user(), $validatedData);
-
-            if (!$response['success']) {
-                return ApiResponse::errorResponse(
-                    $response['message'],
-                    $response['code'] ?? 500,
-                    null
-                );
-            }
 
             return ApiResponse::successResponse(
                 $response['message'],
                 $response['data']
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $th) {
             return ApiResponse::errorResponse(
-                $e->getMessage(),
-                500,
-                $e
+                $th->getMessage(),
+                $th->getCode() ?? 500,
+                $th
             );
         }
     }
@@ -75,32 +63,20 @@ class AttendanceController extends Controller
         try {
             $validatedData = $request->validated();
             if ($this->permissionService->haveOnlyAdminPermission()) {
-                return ApiResponse::errorResponse(
-                    'Unauthorized',
-                    403,
-                    null
-                );
+                throw new \Exception(__('messages.permissions.permission_denied'), 403);
             }
 
             $response = $this->attendanceService->checkOut(Auth::user(), $validatedData);
-
-            if (!$response['success']) {
-                return ApiResponse::errorResponse(
-                    $response['message'],
-                    $response['code'] ?? 500,
-                    null
-                );
-            }
 
             return ApiResponse::successResponse(
                 $response['message'],
                 $response['data']
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $th) {
             return ApiResponse::errorResponse(
-                $e->getMessage(),
-                500,
-                $e
+                $th->getMessage(),
+                $th->getCode() ?? 500,
+                $th
             );
         }
     }
@@ -123,51 +99,51 @@ class AttendanceController extends Controller
 
             $result = $this->attendanceService->listAttendances($user, $params);
 
-            if (!$result['success']) {
-                return ApiResponse::errorResponse(
-                    $result['message'],
-                    500,
-                    null
-                );
-            }
-
             $responseDTO = PaginatedAttendanceResponseDTO::fromPaginator($result['data']);
 
             return ApiResponse::successResponse(
                 'Attendance records retrieved successfully',
                 $responseDTO->toArray()
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $th) {
             return ApiResponse::errorResponse(
-                'Failed to retrieve attendance records: ' . $e->getMessage(),
-                500,
-                null
+                $th->getMessage(),
+                $th->getCode() ?? 500,
+                $th
             );
         }
     }
 
     /**
-     * Display the specified attendance record.
+     * Update the specified attendance record.
      *
+     * @param  \App\Http\Requests\UpdateAttendanceRequest  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function update(UpdateAttendanceRequest $request, $id)
     {
-        $attendance = Attendance::with('user')->findOrFail($id);
-        $user = Auth::user();
+        try {
+            if (!$this->permissionService->haveAdminOrHRPermission()) {
+                throw new \Exception(__('messages.permissions.permission_denied'), 403);
+            }
+            $validatedData = $request->validated();
 
-        // Only allow admin or the user who owns the attendance record to view it
-        if ($user->role !== 'ADMIN' && $attendance->user_id !== $user->id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized'
-            ], 403);
+            $result = $this->attendanceService->updateAttendance(
+                $id,
+                $validatedData
+            );
+
+            return ApiResponse::successResponse(
+                $result['message'],
+                $result['data']
+            );
+        } catch (\Throwable $th) {
+            return ApiResponse::errorResponse(
+                $th->getMessage(),
+                $th->getCode() ?? 500,
+                $th
+            );
         }
-
-        return response()->json([
-            'status' => 'success',
-            'attendance' => $attendance
-        ]);
     }
 }

@@ -35,6 +35,20 @@ class AttendanceRepository
             ->first();
     }
 
+    public function getAttendanceById($id)
+    {
+        return Attendance::findOrFail($id);
+    }
+
+    public function updateAttendanceRecord($id, array $data)
+    {
+        $attendance = $this->getAttendanceById($id);
+
+        $attendance->update($data);
+
+        return $attendance->fresh();
+    }
+
     public function listAttendances($params = [])
     {
         $query = Attendance::with(['user' => function ($query) use ($params) {
@@ -97,7 +111,7 @@ class AttendanceRepository
         ]);
     }
 
-    protected function calculateIsLate(Carbon $checkInTime): bool
+    public function calculateIsLate(Carbon $checkInTime): bool
     {
         $officeStartTime = config('attendance.office_start_time');
 

@@ -39,6 +39,6 @@ $router->group(['prefix' => 'api/v1', 'middleware' => 'jwt.auth'], function () u
         $router->get('/', 'AttendanceController@index');
         $router->post('check-in', 'AttendanceController@checkIn');
         $router->post('check-out', 'AttendanceController@checkOut');
-        $router->get('/{id}', 'AttendanceController@show');
+        $router->put('/update/{id}', 'AttendanceController@update');
     });
 });

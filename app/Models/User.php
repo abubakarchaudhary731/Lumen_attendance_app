@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use DateTimeInterface;
 use App\Enums\Users\UserRole;
 use App\Enums\Users\UserStatus;
 use Illuminate\Auth\Authenticatable;
@@ -74,5 +76,12 @@ class User extends Model implements JWTSubject, AuthenticatableContract, Authori
             'role' => UserRole::class,
             'status' => UserStatus::class,
         ];
+    }
+
+    protected function serializeDate(DateTimeInterface $date): string
+    {
+        return Carbon::instance($date)->setTimezone(
+            new \DateTimeZone(config('app.timezone', 'UTC'))
+        )->format('Y-m-d H:i:s');
     }
 }

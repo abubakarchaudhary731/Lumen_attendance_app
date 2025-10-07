@@ -41,4 +41,10 @@ $router->group(['prefix' => 'api/v1', 'middleware' => 'jwt.auth'], function () u
         $router->post('check-out', 'AttendanceController@checkOut');
         $router->put('/update/{id}', 'AttendanceController@update');
     });
+
+    $router->group(['prefix' => 'standup'], function () use ($router) {
+        $router->get('/', 'DailyStandupController@index');
+        $router->post('/', 'DailyStandupController@create');
+        $router->put('/update/{id}', 'DailyStandupController@update');
+    });
 });
